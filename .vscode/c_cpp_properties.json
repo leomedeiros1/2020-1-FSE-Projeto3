@@ -19,7 +19,6 @@
                 "${workspaceFolder}",
                 "${workspaceFolder}/build/config",
                 "${workspaceFolder}/build/bootloader/config",
-                "${IDF_TOOLS}/xtensa-esp32-elf/esp-2019r2-8.2.0/xtensa-esp32-elf/xtensa-esp32-elf/include",
                 "${IDF_PATH}/components/xtensa/include",
                 "${IDF_PATH}/components/xtensa/esp32/include",
                 "${IDF_PATH}/components/newlib/platform_include",
@@ -106,7 +105,9 @@
                 "${IDF_PATH}/components/unity/include",
                 "${IDF_PATH}/components/unity/unity/src",
                 "${IDF_PATH}/components/wifi_provisioning/include",
-                "${IDF_PATH}/examples/common_components/protocol_examples_common/include"
+                "${IDF_PATH}/examples/common_components/protocol_examples_common/include",
+                "${IDF_PATH}/components/hal/include",
+                "${IDF_PATH}/components/freertos/port/riscv/include"
             ],
             "defines": [],
             "cStandard": "c11",

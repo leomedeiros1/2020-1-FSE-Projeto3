@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "freertos/semphr.h"
 #include <string.h>
+#include "driver/gpio.h"
 
 #include "wifi.h"
 #include "http_client.h"
@@ -17,12 +18,23 @@
 #define WEATHEMAPKEY CONFIG_OPEN_WEATHER_MAP_KEY
 
 #define BUFFER_SIZE 1024
+#define LED 2
+
 #define DEBUG true
 
 char * response_buffer = NULL;
 int response_size = 0;
 
+int wifi_connected = 0;
+
 xSemaphoreHandle conexaoWifiSemaphore;
+xSemaphoreHandle ledSemaphore;
+
+void ledBlink(){
+  gpio_set_level(LED, 0);
+  vTaskDelay(500 / portTICK_PERIOD_MS);
+  gpio_set_level(LED, 1);
+}
 
 void RealizaHTTPRequest(void * params)
 {
@@ -49,6 +61,7 @@ void RealizaHTTPRequest(void * params)
       strcat(url, IPSTACKKEY);
       strcat(url, "&output=json");
       http_request(url);
+      ledBlink();
       if (response_size != 0){
         response_buffer[response_size] = '\0';
         if(DEBUG) printf("%s\n\n\n", response_buffer);
@@ -67,6 +80,7 @@ void RealizaHTTPRequest(void * params)
 
         sprintf(url, "http://api.openweathermap.org/data/2.5/weather?lat=%lf&lon=%lf&appid=%s", lat, lng, WEATHEMAPKEY);
         http_request(url);
+        ledBlink();
 
         if (response_size != 0){
           sucess = 1;
@@ -93,6 +107,21 @@ void RealizaHTTPRequest(void * params)
   }
 }
 
+void ledHandler(void * params){
+  while(true){
+    if(xSemaphoreTake(ledSemaphore, portMAX_DELAY)){
+      if(wifi_connected){
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        gpio_set_level(LED, 1);
+      }else{
+        ledBlink();
+      }
+    }
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+    xSemaphoreGive(ledSemaphore);
+  }
+}
+
 void app_main(void)
 {
     // Inicializa o NVS
@@ -102,6 +131,13 @@ void app_main(void)
       ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    // Inicializa LED
+    gpio_pad_select_gpio(LED);
+    gpio_set_direction(LED, GPIO_MODE_OUTPUT);
+    ledSemaphore = xSemaphoreCreateBinary();
+    xSemaphoreGive(ledSemaphore);
+    xTaskCreate(&ledHandler,  "Controla LED", 4096, NULL, 1, NULL);
     
     conexaoWifiSemaphore = xSemaphoreCreateBinary();
     wifi_start();
