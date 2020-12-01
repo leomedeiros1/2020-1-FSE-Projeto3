@@ -9,6 +9,7 @@
 
 #include "wifi.h"
 #include "http_client.h"
+#include "json_utils.h"
 
 #define IPSTACKKEY CONFIG_IP_STACK_KEY
 #define WEATHEMAPKEY CONFIG_OPEN_WEATHER_MAP_KEY
@@ -44,7 +45,11 @@ void RealizaHTTPRequest(void * params)
       http_request(url);
       if (response_size != 0){
         response_buffer[response_size] = '\0';
-        printf("%s\n", response_buffer);
+        printf("%s\n\n\n", response_buffer);
+        double lat, lng;
+        getJsonData(response_buffer, &lat, &lng);
+        printf("%lf %lf\n\n", lat, lng);
+        free(response_buffer);
       }
       //https_request();
     }
