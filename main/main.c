@@ -11,10 +11,13 @@
 #include "http_client.h"
 #include "json_utils.h"
 
+#define KTOC(k) (k-273)
+
 #define IPSTACKKEY CONFIG_IP_STACK_KEY
 #define WEATHEMAPKEY CONFIG_OPEN_WEATHER_MAP_KEY
 
 #define BUFFER_SIZE 1024
+#define DEBUG true
 
 char * response_buffer = NULL;
 int response_size = 0;
@@ -23,6 +26,7 @@ xSemaphoreHandle conexaoWifiSemaphore;
 
 void RealizaHTTPRequest(void * params)
 {
+  int sucess=0;
   while(true)
   {
     if(xSemaphoreTake(conexaoWifiSemaphore, portMAX_DELAY))
@@ -47,10 +51,10 @@ void RealizaHTTPRequest(void * params)
       http_request(url);
       if (response_size != 0){
         response_buffer[response_size] = '\0';
-        printf("%s\n\n\n", response_buffer);
+        if(DEBUG) printf("%s\n\n\n", response_buffer);
         double lat=0, lng=0;
         getJsonLatLng(response_buffer, &lat, &lng);
-        printf("%lf %lf\n\n", lat, lng);
+        if(DEBUG) printf("%lf %lf\n\n", lat, lng);
         free(response_buffer); response_buffer=NULL;
         response_size = 0;
 
@@ -65,16 +69,26 @@ void RealizaHTTPRequest(void * params)
         http_request(url);
 
         if (response_size != 0){
+          sucess = 1;
           response_buffer[response_size] = '\0';
           double temp[3];
           int hum=-1;
           getJsonTempHum(response_buffer, temp, &hum);
-          printf("%.2lf %.2lf %.2lf %d\n\n", temp[0], temp[1], temp[2], hum);
+          printf("Temperatura atual: %.2lf oC\n", KTOC(temp[0]));
+          printf("Temperatura minima: %.2lf oC\n", KTOC(temp[1]));
+          printf("Temperatura maxima: %.2lf oC\n", KTOC(temp[2]));
+          printf("Humidade atual: %d %% \n", hum);
         }
         free(response_buffer); response_buffer=NULL;
         response_size = 0;
       }
       //https_request();
+      xSemaphoreGive(conexaoWifiSemaphore);
+    }
+    if(sucess){
+      if(DEBUG) vTaskDelay(1000 * 20 / portTICK_PERIOD_MS);
+      else vTaskDelay(1000 * 60 * 5 / portTICK_PERIOD_MS);
+      sucess=0;
     }
   }
 }
@@ -93,7 +107,5 @@ void app_main(void)
     wifi_start();
 
     xTaskCreate(&RealizaHTTPRequest,  "Processa HTTP", 4096, NULL, 1, NULL);
-
-
-    
+ 
 }
