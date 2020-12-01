@@ -5,9 +5,13 @@
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "freertos/semphr.h"
+#include <string.h>
 
 #include "wifi.h"
 #include "http_client.h"
+
+#define IPSTACKKEY CONFIG_IP_STACK_KEY
+#define WEATHEMAPKEY CONFIG_OPEN_WEATHER_MAP_KEY
 
 #define BUFFER_SIZE 1024
 
@@ -34,7 +38,9 @@ void RealizaHTTPRequest(void * params)
       }
       ESP_LOGI("Main Task", "Realiza HTTP Request");
       // char url[1024] = "http://quotes.rest/qod";
-      char url[1024] = "http://api.ipstack.com/check?access_key=22b531b5ff6bdee578da0beacd3362e4&output=json";
+      char url[1024] = "http://api.ipstack.com/check?access_key=";
+      strcat(url, IPSTACKKEY);
+      strcat(url, "&output=json");
       http_request(url);
       if (response_size != 0){
         response_buffer[response_size] = '\0';
