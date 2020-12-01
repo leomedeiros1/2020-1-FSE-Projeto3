@@ -16,7 +16,7 @@
 
 #define BUFFER_SIZE 1024
 
-char * response_buffer;
+char * response_buffer = NULL;
 int response_size = 0;
 
 xSemaphoreHandle conexaoWifiSemaphore;
@@ -27,15 +27,17 @@ void RealizaHTTPRequest(void * params)
   {
     if(xSemaphoreTake(conexaoWifiSemaphore, portMAX_DELAY))
     {
-      if (response_size == 0)
-      {
+      if (response_size == 0){
         response_buffer = (char *)malloc(BUFFER_SIZE);
-        if (response_buffer == NULL)
-        {
-            ESP_LOGE("malloc", "Memory alloc error");
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-            continue;
+        if (response_buffer == NULL){
+          ESP_LOGE("malloc", "Memory alloc error");
+          vTaskDelay(500 / portTICK_PERIOD_MS);
+          continue;
         }
+      }else{
+        free(response_buffer); response_buffer=NULL;
+        response_size = 0;
+        continue;
       }
       ESP_LOGI("Main Task", "Realiza HTTP Request");
       // char url[1024] = "http://quotes.rest/qod";
@@ -46,10 +48,31 @@ void RealizaHTTPRequest(void * params)
       if (response_size != 0){
         response_buffer[response_size] = '\0';
         printf("%s\n\n\n", response_buffer);
-        double lat, lng;
-        getJsonData(response_buffer, &lat, &lng);
+        double lat=0, lng=0;
+        getJsonLatLng(response_buffer, &lat, &lng);
         printf("%lf %lf\n\n", lat, lng);
-        free(response_buffer);
+        free(response_buffer); response_buffer=NULL;
+        response_size = 0;
+
+        response_buffer = (char *)malloc(BUFFER_SIZE);
+        if (response_buffer == NULL){
+          ESP_LOGE("malloc", "Memory alloc error");
+          vTaskDelay(500 / portTICK_PERIOD_MS);
+          continue;
+        }
+
+        sprintf(url, "http://api.openweathermap.org/data/2.5/weather?lat=%lf&lon=%lf&appid=%s", lat, lng, WEATHEMAPKEY);
+        http_request(url);
+
+        if (response_size != 0){
+          response_buffer[response_size] = '\0';
+          double temp[3];
+          int hum=-1;
+          getJsonTempHum(response_buffer, temp, &hum);
+          printf("%.2lf %.2lf %.2lf %d\n\n", temp[0], temp[1], temp[2], hum);
+        }
+        free(response_buffer); response_buffer=NULL;
+        response_size = 0;
       }
       //https_request();
     }
