@@ -20,7 +20,7 @@
 #define BUFFER_SIZE 1024
 #define LED 2
 
-#define DEBUG true
+#define DEBUG false
 
 char * response_buffer = NULL;
 int response_size = 0;
